@@ -35,14 +35,14 @@ canvas{display:block}
 
 <script>
 var M = Math;
-var cv, ctx, W, H;
+var cv, ctx, W, H, DPR;
 
 var bunnyImg = null, carrotImg = null;
 var state = 'title';
 var score = 0, speedMul = 1, baseSpeed = 3;
 var bunny = { x: 120, y: 0, vy: 0, onGround: true };
-var pressStart = 0;      // 按键按下时刻
-var isPressing = false;  // 是否按住中
+var pressStart = 0;
+var isPressing = false;
 var carrots = [];
 var mapX = 0, gameTime = 0, lastFrame = 0;
 
@@ -50,28 +50,39 @@ var GROUND_RATIO = 0.72;
 var JUMP_VEL = -12;
 var GRAVITY = 0.6;
 
+// 响应式尺寸 — 随屏幕宽度动态计算
+var BUNNY_SZ, CARROT_SZ_W, CARROT_SZ_H;
+
 function rand(a,b) { return a + M.random()*(b-a); }
 function groundY() { return H * GROUND_RATIO; }
+
+function calcSizes() {
+  BUNNY_SZ = Math.round(W * 0.18);      // 兔子占屏宽18%
+  CARROT_SZ_W = Math.round(W * 0.10);   // 萝卜宽10%
+  CARROT_SZ_H = Math.round(W * 0.22);   // 萝卜高22%
+  // 碰撞检测用实际尺寸
+  bunny.x = Math.min(bunny.x, W - 40);
+  bunny.y = groundY();
+}
 
 function startGame() {
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('jumpBtn').style.display = 'flex';
   score = 0; speedMul = 1; gameTime = 0; mapX = 0;
-  bunny = { x: 120, y: groundY(), vy: 0, onGround: true };
+  bunny = { x: W * 0.2, y: groundY(), vy: 0, onGround: true };
   carrots = [];
-  carrots.push({ x: W + 100, w: rand(30,55), h: rand(55,120), bob: 0 });
+  carrots.push({ x: W + 100, w: rand(CARROT_SZ_W*0.6, CARROT_SZ_W*1.1), h: rand(CARROT_SZ_H*0.4, CARROT_SZ_H) });
   for (var i = 0; i < 7; i++) carrots.push(spawnCarrot());
-  // 初始排序确保间距
   state = 'play'; updateUI();
 }
 
 function spawnCarrot() {
   var lastX = carrots.length > 0 ? carrots[carrots.length-1].x : W;
-  var gap = M.max(160, 400 - speedMul * 120); // 最少2只兔子宽
+  var gap = M.max(BUNNY_SZ * 2.5, 400 - speedMul * 120);
   return {
     x: M.max(lastX + gap, W + 50),
-    w: rand(30, 55),
-    h: rand(55, 120),
+    w: rand(CARROT_SZ_W * 0.6, CARROT_SZ_W * 1.2),
+    h: rand(CARROT_SZ_H * 0.4, CARROT_SZ_H),
     bob: rand(0, M.PI*2)
   };
 }
@@ -85,11 +96,8 @@ function update(dt) {
   gameTime += dt;
   speedMul = 1 + gameTime / 25000;
   var spd = baseSpeed * speedMul * (dt / 16);
-
-  // 地图无限循环
   mapX = (mapX + spd) % W;
 
-  // 兔子物理
   bunny.y += bunny.vy * (dt / 16);
   bunny.vy += GRAVITY * (dt / 16);
   if (bunny.y >= groundY()) {
@@ -98,26 +106,24 @@ function update(dt) {
     bunny.onGround = true;
   }
 
-  // 萝卜移动+碰撞
+  var halfB = BUNNY_SZ * 0.15;
   for (var i = carrots.length - 1; i >= 0; i--) {
     var c = carrots[i];
     c.x -= spd;
     var gy = groundY();
-    // 精确碰撞
     var ct3 = gy - c.h * 0.45;
-    var bL = bunny.x - 10, bR = bunny.x + 10;
+    var bL = bunny.x - halfB, bR = bunny.x + halfB;
     var cL = c.x - c.w * 0.3, cR = c.x + c.w * 0.3;
     if (bR > cL && bL < cR && bunny.y - 2 >= ct3) {
       gameOver('碰到萝卜啦！🥕'); return;
     }
-    if (c.x < -80) {
+    if (c.x < -100) {
       carrots.splice(i, 1);
       score++; updateUI();
     }
   }
 
-  // 补充萝卜 — 间距从宽到密，最密也够2只兔子
-  var minGap = M.max(160, 400 - speedMul * 120);
+  var minGap = M.max(BUNNY_SZ * 2.5, 400 - speedMul * 120);
   var canSpawn = carrots.length < 12;
   if (canSpawn && carrots.length > 0) {
     if (carrots[carrots.length-1].x > W - minGap) canSpawn = false;
@@ -138,27 +144,20 @@ function gameOver(reason) {
 
 function doJump() {
   if (!bunny.onGround || state !== 'play') return;
-  var held = Math.min(Date.now() - pressStart, 600); // 最长600ms
-  var power = -8 - (held / 600) * 12; // 短按-8 长按-20
+  var held = Math.min(Date.now() - pressStart, 600);
+  var power = -8 - (held / 600) * 12;
   bunny.vy = power;
   bunny.onGround = false;
-}
-// 键盘持续按住自动起跳
-function jump() {
-  if (!bunny.onGround || state !== 'play') return;
-  pressStart = Date.now(); isPressing = true;
 }
 
 function render() {
   ctx.clearRect(0, 0, W, H);
   var gy = groundY();
 
-  // 黑色天空
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
 
-  // 积分（黄色大字居中）
   ctx.fillStyle = '#ff0';
-  ctx.font = 'bold 56px sans-serif';
+  ctx.font = 'bold ' + Math.round(H*0.07) + 'px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(score, W/2, H*0.15);
 
@@ -166,7 +165,7 @@ function render() {
   ctx.fillStyle = '#7B4D2E'; ctx.fillRect(0, gy, W, H-gy);
   ctx.fillStyle = '#5A3020'; ctx.fillRect(0, gy, W, 3);
 
-  // 萝卜 — 下半埋在土里不可见
+  // 萝卜
   if (carrotImg) {
     for (var i = 0; i < carrots.length; i++) {
       var c = carrots[i], cx = c.x, cw = c.w, ch = c.h, visH = ch * 0.55;
@@ -186,16 +185,15 @@ function render() {
 
   // 兔子
   if (bunnyImg) {
-    ctx.drawImage(bunnyImg, bunny.x - 35, bunny.y - 60, 70, 70);
+    var sz = BUNNY_SZ;
+    ctx.drawImage(bunnyImg, bunny.x - sz/2, bunny.y - sz * 0.85, sz, sz);
   } else {
-    var bx = bunny.x, by = bunny.y;
+    var bx = bunny.x, by = bunny.y, s = BUNNY_SZ;
     ctx.fillStyle = '#fff'; ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(bx, by-22, 18, 22, 0, 0, M.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(bx-5, by-40, 12, 0, M.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(bx-12, by-60, 6, 16, -0.2, 0, M.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(bx+2, by-62, 6, 16, 0.2, 0, M.PI*2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx-9, by-42, 3, 0, M.PI*2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx+20, by-22, 8, 0, M.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(bx, by-s*0.31, s*0.26, s*0.31, 0, 0, M.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(bx-s*0.07, by-s*0.57, s*0.17, 0, M.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx-s*0.13, by-s*0.6, s*0.04, 0, M.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx+s*0.29, by-s*0.31, s*0.11, 0, M.PI*2); ctx.fill(); ctx.stroke();
   }
 }
 
@@ -209,28 +207,41 @@ function gameLoop(ts) {
   requestAnimationFrame(gameLoop);
 }
 
-// Init
+// === Init ===
 cv = document.getElementById('c'); ctx = cv.getContext('2d');
-function resize() { W = window.innerWidth; H = window.innerHeight; cv.width = W; cv.height = H; bunny.y = groundY(); }
+DPR = window.devicePixelRatio || 1;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  calcSizes();
+}
 resize(); window.addEventListener('resize', resize);
 
-// Load images
+// 图片加载 — 相对路径 + 绝对路径兜底
+var BASE = 'https://jorain13.github.io/bunny-jump/';
 var imgList = { bunny: '小兔子.png', carrot: '萝卜.png' };
 var loaded = 0, total = 2;
-for (var k in imgList) {
-  (function(key) {
-    var img = new Image();
-    img.onload = function() {
-      if (key === 'bunny') bunnyImg = img;
-      if (key === 'carrot') carrotImg = img;
-
+function tryLoad(key, fallback) {
+  var img = new Image();
+  img.onload = function() {
+    if (key === 'bunny') bunnyImg = img;
+    if (key === 'carrot') carrotImg = img;
+    loaded++;
+    if (loaded >= total) { lastFrame = performance.now(); gameLoop(); }
+  };
+  img.onerror = function() {
+    if (!fallback) {
+      tryLoad(key, true);  // 绝对路径重试
+    } else {
       loaded++;
       if (loaded >= total) { lastFrame = performance.now(); gameLoop(); }
-    };
-    img.onerror = function() { loaded++; if (loaded >= total) { lastFrame = performance.now(); gameLoop(); } };
-    img.src = imgList[key];
-  })(k);
+    }
+  };
+  img.src = fallback ? (BASE + imgList[key]) : imgList[key];
 }
+for (var k in imgList) tryLoad(k, false);
 
 // Buttons
 document.getElementById('startBtn').addEventListener('click', startGame);
