@@ -203,10 +203,11 @@ function render() {
 
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = '#333';
-  ctx.font = 'bold ' + Math.round(H*0.07) + 'px sans-serif';
+  ctx.fillStyle = '#fd0';
+  ctx.font = 'bold ' + Math.round(W*0.20) + 'px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(score, W/2, H*0.15);
+  ctx.textBaseline = 'middle';
+  ctx.fillText(score, W/2, H*0.48);
 
   // 地面
   ctx.fillStyle = '#7B4D2E'; ctx.fillRect(0, gy, W, H-gy);
