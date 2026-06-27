@@ -149,7 +149,9 @@ function update(dt) {
     }
     // 兔子在空中越过萝卜才记分
     if (!c.passed && c.x < bunny.x) {
-      if (!bunny.onGround) { c.passed = true; score++; updateUI(); }
+      if (!bunny.onGround) { c.passed = true; score++; updateUI();
+        if (score >= 100) { gameWin(); return; }
+      }
     }
     if (c.x < -100) {
       carrots.splice(i, 1);
@@ -165,6 +167,16 @@ function update(dt) {
     carrots.push(spawnCarrot());
   }
   updateUI();
+}
+
+function gameWin() {
+  state = 'over';
+  document.getElementById('jumpBtn').style.display = 'none';
+  var ov = document.getElementById('overlay');
+  ov.classList.remove('hidden');
+  ov.innerHTML = '<div class="box" style="border-color:rgba(255,220,0,0.6);box-shadow:0 0 60px rgba(255,200,0,0.3)"><h1 style="font-size:40px;color:#fd0;text-shadow:0 0 30px rgba(255,220,0,0.8)">🏆 挑战成功！</h1><p style="font-size:18px;color:#fd0">得分：' + score + '</p><p style="color:#fd0">太厉害了！🎉</p><button class="btn" id="restartBtn" style="background:linear-gradient(135deg,#fd0,#f80)">🔄 再来一次</button></div>';
+  document.getElementById('restartBtn').addEventListener('click', startGame);
+  document.getElementById('restartBtn').addEventListener('touchend', function(e){ e.preventDefault(); startGame(); });
 }
 
 function gameOver(reason) {
