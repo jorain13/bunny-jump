@@ -118,10 +118,9 @@ function update(dt) {
     if (bR > cL && bL < cR && bunny.y - 2 >= ct3) {
       gameOver('碰到萝卜啦！🥕'); return;
     }
-    // 兔子跳过萝卜记分
+    // 兔子在空中越过萝卜才记分
     if (!c.passed && c.x < bunny.x) {
-      c.passed = true;
-      score++; updateUI();
+      if (!bunny.onGround) { c.passed = true; score++; updateUI(); }
     }
     if (c.x < -100) {
       carrots.splice(i, 1);
