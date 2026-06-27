@@ -57,9 +57,9 @@ function rand(a,b) { return a + M.random()*(b-a); }
 function groundY() { return H * GROUND_RATIO; }
 
 function calcSizes() {
-  BUNNY_SZ = Math.round(W * 0.18);      // 兔子占屏宽18%
-  CARROT_SZ_W = Math.round(W * 0.10);   // 萝卜宽10%
-  CARROT_SZ_H = Math.round(W * 0.22);   // 萝卜高22%
+  BUNNY_SZ = Math.round(W * 0.10);      // 兔子占屏宽10%
+  CARROT_SZ_W = Math.round(W * 0.06);   // 萝卜宽6%
+  CARROT_SZ_H = Math.round(W * 0.13);   // 萝卜高13%
   // 碰撞检测用实际尺寸
   bunny.x = Math.min(bunny.x, W - 40);
   bunny.y = groundY();
