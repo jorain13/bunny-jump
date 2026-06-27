@@ -71,7 +71,7 @@ function startGame() {
   score = 0; speedMul = 1; gameTime = 0; mapX = 0;
   bunny = { x: W * 0.2, y: groundY(), vy: 0, onGround: true };
   carrots = [];
-  carrots.push({ x: W + 100, w: rand(CARROT_SZ_W*0.6, CARROT_SZ_W*1.1), h: rand(CARROT_SZ_H*0.4, CARROT_SZ_H) });
+  carrots.push({ x: W + 100, w: rand(CARROT_SZ_W*0.6, CARROT_SZ_W*1.1), h: rand(CARROT_SZ_H*0.4, CARROT_SZ_H), passed: false });
   for (var i = 0; i < 7; i++) carrots.push(spawnCarrot());
   state = 'play'; updateUI();
 }
@@ -83,7 +83,8 @@ function spawnCarrot() {
     x: M.max(lastX + gap, W + 50),
     w: rand(CARROT_SZ_W * 0.6, CARROT_SZ_W * 1.2),
     h: rand(CARROT_SZ_H * 0.4, CARROT_SZ_H),
-    bob: rand(0, M.PI*2)
+    bob: rand(0, M.PI*2),
+    passed: false
   };
 }
 
@@ -117,9 +118,13 @@ function update(dt) {
     if (bR > cL && bL < cR && bunny.y - 2 >= ct3) {
       gameOver('碰到萝卜啦！🥕'); return;
     }
+    // 兔子跳过萝卜记分
+    if (!c.passed && c.x < bunny.x) {
+      c.passed = true;
+      score++; updateUI();
+    }
     if (c.x < -100) {
       carrots.splice(i, 1);
-      score++; updateUI();
     }
   }
 
