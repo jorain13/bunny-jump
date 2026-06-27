@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>🐰 小兔子跳跳</title>
+<title>🐱 龙猫跳跳</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000}
@@ -17,6 +17,9 @@ canvas{display:block}
 .box p{font-size:14px;color:#9ab;line-height:1.7;margin-bottom:22px}
 .btn{padding:16px 48px;font-size:20px;font-weight:bold;border:none;border-radius:30px;background:linear-gradient(135deg,#f62,#e30);color:#fff;cursor:pointer;touch-action:manipulation}
 .btn:active{transform:scale(0.94)}
+.countdown-text{font-size:72px;font-weight:900;color:#fd0;text-shadow:0 0 30px rgba(255,220,0,0.6),0 0 60px rgba(255,180,0,0.4);animation:pulse .5s ease-in-out}
+.countdown-sub{font-size:36px;color:#fd0;text-shadow:0 0 20px rgba(255,220,0,0.5);margin-bottom:16px}
+@keyframes pulse{0%{transform:scale(0.7);opacity:0.5}50%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
 #jumpBtn{position:fixed;bottom:40px;right:30px;z-index:20;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(255,200,100,0.8),rgba(255,100,20,0.6));border:3px solid rgba(255,180,80,0.8);color:#fff;font-size:20px;font-weight:bold;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:manipulation}
 #jumpBtn:active{transform:scale(0.9);background:radial-gradient(circle at 40% 35%,rgba(255,240,140,0.9),rgba(255,140,40,0.8))}
 </style>
@@ -26,8 +29,8 @@ canvas{display:block}
 <div id="ui"><span id="speed">🐇 x1.0</span></div>
 <div id="overlay">
   <div class="box">
-    <h1>🐰 小兔子跳跳</h1>
-    <p>按右侧按钮跳跃<br>躲开地上的萝卜<br>速度越来越快！</p>
+    <h1>🐱 龙猫跳跳</h1>
+    <p>按右侧按钮跳跃<br>躲开地上的萝卜<br>挑战 100 分！</p>
     <button class="btn" id="startBtn">🎮 出发！</button>
   </div>
 </div>
@@ -66,14 +69,40 @@ function calcSizes() {
 }
 
 function startGame() {
-  document.getElementById('overlay').classList.add('hidden');
-  document.getElementById('jumpBtn').style.display = 'flex';
-  score = 0; speedMul = 1; gameTime = 0; mapX = 0;
-  bunny = { x: W * 0.2, y: groundY(), vy: 0, onGround: true };
-  carrots = [];
-  carrots.push({ x: W + 100, w: rand(CARROT_SZ_W*0.6, CARROT_SZ_W*1.1), h: rand(CARROT_SZ_H*0.4, CARROT_SZ_H), passed: false });
-  for (var i = 0; i < 7; i++) carrots.push(spawnCarrot());
-  state = 'play'; updateUI();
+  var ov = document.getElementById('overlay');
+  var box = ov.querySelector('.box');
+
+  // 显示"挑战100分"
+  box.innerHTML = '<div class="countdown-sub">⚡ 挑战 100 分 ⚡</div><div class="countdown-text" id="cd-num">3</div>';
+  ov.classList.remove('hidden');
+  document.getElementById('jumpBtn').style.display = 'none';
+
+  var count = 3;
+  var cdEl = document.getElementById('cd-num');
+  function tick() {
+    if (count <= 0) {
+      ov.classList.add('hidden');
+      document.getElementById('jumpBtn').style.display = 'flex';
+      score = 0; speedMul = 1; gameTime = 0; mapX = 0;
+      bunny = { x: W * 0.2, y: groundY(), vy: 0, onGround: true };
+      carrots = [];
+      carrots.push({ x: W + 100, w: rand(CARROT_SZ_W*0.6, CARROT_SZ_W*1.1), h: rand(CARROT_SZ_H*0.4, CARROT_SZ_H), passed: false });
+      for (var i = 0; i < 7; i++) carrots.push(spawnCarrot());
+      state = 'play'; updateUI();
+      // 恢复开始按钮
+      box.innerHTML = '<h1>🐱 龙猫跳跳</h1><p>按右侧按钮跳跃<br>躲开地上的萝卜<br>挑战 100 分！</p><button class="btn" id="startBtn">🎮 出发！</button>';
+      document.getElementById('startBtn').addEventListener('click', startGame);
+      document.getElementById('startBtn').addEventListener('touchend', function(e){ e.preventDefault(); startGame(); });
+      return;
+    }
+    cdEl.textContent = count;
+    cdEl.style.animation = 'none';
+    cdEl.offsetHeight;
+    cdEl.style.animation = 'pulse .5s ease-in-out';
+    count--;
+    setTimeout(tick, 800);
+  }
+  tick();
 }
 
 function spawnCarrot() {
@@ -89,7 +118,7 @@ function spawnCarrot() {
 }
 
 function updateUI() {
-  document.getElementById('speed').textContent = '🐇 x' + speedMul.toFixed(1);
+  document.getElementById('speed').textContent = '🐱 x' + speedMul.toFixed(1);
 }
 
 function update(dt) {
