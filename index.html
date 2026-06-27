@@ -286,7 +286,7 @@ function tryLoad(key, fallback) {
       if (loaded >= total) { lastFrame = performance.now(); gameLoop(); }
     }
   };
-  img.src = fallback ? (BASE + imgList[key]) : imgList[key];
+  img.src = (fallback ? (BASE + imgList[key]) : imgList[key]) + '?v=' + Date.now();
 }
 for (var k in imgList) tryLoad(k, false);
 
